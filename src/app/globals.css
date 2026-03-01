@@ -1,0 +1,426 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens
+ * All colors use semantic tokens — never hardcode hex values in components.
+ *
+ * Usage: bg-background, text-foreground, border-border, etc.
+ * Tailwind v4: @theme maps CSS variables to utility classes.
+ */
+
+@theme {
+  /* Radius */
+  --radius: 0.375rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+
+  /* Semantic color tokens → Tailwind utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+
+  /* Status colors → bg-status-open, text-status-open-foreground, etc. */
+  --color-status-open: var(--status-open);
+  --color-status-open-foreground: var(--status-open-foreground);
+  --color-status-in-progress: var(--status-in-progress);
+  --color-status-in-progress-foreground: var(--status-in-progress-foreground);
+  --color-status-waiting: var(--status-waiting);
+  --color-status-waiting-foreground: var(--status-waiting-foreground);
+  --color-status-resolved: var(--status-resolved);
+  --color-status-resolved-foreground: var(--status-resolved-foreground);
+  --color-status-closed: var(--status-closed);
+  --color-status-closed-foreground: var(--status-closed-foreground);
+
+  /* Priority colors */
+  --color-priority-urgent: var(--priority-urgent);
+  --color-priority-urgent-foreground: var(--priority-urgent-foreground);
+  --color-priority-high: var(--priority-high);
+  --color-priority-high-foreground: var(--priority-high-foreground);
+  --color-priority-medium: var(--priority-medium);
+  --color-priority-medium-foreground: var(--priority-medium-foreground);
+  --color-priority-low: var(--priority-low);
+  --color-priority-low-foreground: var(--priority-low-foreground);
+
+  /* Role colors */
+  --color-role-admin: var(--role-admin);
+  --color-role-admin-foreground: var(--role-admin-foreground);
+  --color-role-agent: var(--role-agent);
+  --color-role-agent-foreground: var(--role-agent-foreground);
+  --color-role-customer: var(--role-customer);
+  --color-role-customer-foreground: var(--role-customer-foreground);
+
+  /* Internal note accent */
+  --color-internal: var(--internal);
+  --color-internal-foreground: var(--internal-foreground);
+  --color-internal-border: var(--internal-border);
+
+  /* Link color */
+  --color-link: var(--link);
+  --color-link-hover: var(--link-hover);
+
+  /* Sidebar tokens (shadcn sidebar component) */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/*
+ * Light theme — Warm neutrals (tapa) + Teal brand accent
+ * Neutrals: Tapa (warm stone) palette:
+ *   50: #faf9f9  100: #f5f4f4  200: #e7e5e4  300: #d6d3d1
+ *   400: #a8a29e  500: #78716c  600: #57524e  700: #443f3c
+ *   800: #292624  900: #1c1917  950: #0c0a09
+ * Brand: Teal (lochinvar) palette:
+ *   50: #f0fdfc  100: #ccfbf7  200: #99f6ee  300: #5eeade
+ *   400: #2dd4c5  500: #14b8a9  600: #0d9488  700: #0f766d
+ *   800: #115e57  900: #134e49  950: #042f2b
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #1c1917;
+  --muted: #f5f4f4;
+  --muted-foreground: #78716c;
+  --popover: #ffffff;
+  --popover-foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --border: #e7e5e4;
+  --input: #e7e5e4;
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --secondary: #f5f4f4;
+  --secondary-foreground: #1c1917;
+  --accent: #f5f4f4;
+  --accent-foreground: #1c1917;
+  --destructive: #eb5757;
+  --destructive-foreground: #ffffff;
+  --success: #4dab9a;
+  --success-foreground: #ffffff;
+  --warning: #cb912f;
+  --warning-foreground: #ffffff;
+  --ring: #0d9488;
+  --surface: #faf9f9;
+
+  /* Status */
+  --status-open: #edf2fc;
+  --status-open-foreground: #5b7bb4;
+  --status-in-progress: #fdf4e8;
+  --status-in-progress-foreground: #a67c3d;
+  --status-waiting: #f2ecf8;
+  --status-waiting-foreground: #8b6cad;
+  --status-resolved: #e9f5ee;
+  --status-resolved-foreground: #4a9068;
+  --status-closed: #f5f4f4;
+  --status-closed-foreground: #78716c;
+
+  /* Priority */
+  --priority-urgent: #fde8e8;
+  --priority-urgent-foreground: #c75050;
+  --priority-high: #fdf0e6;
+  --priority-high-foreground: #bf7530;
+  --priority-medium: #fdf4e8;
+  --priority-medium-foreground: #a67c3d;
+  --priority-low: #f5f4f4;
+  --priority-low-foreground: #78716c;
+
+  /* Role */
+  --role-admin: #fde8e8;
+  --role-admin-foreground: #c75050;
+  --role-agent: #edf2fc;
+  --role-agent-foreground: #5b7bb4;
+  --role-customer: #e9f5ee;
+  --role-customer-foreground: #4a9068;
+
+  /* Internal note */
+  --internal: #fdf8f0;
+  --internal-foreground: #b89358;
+  --internal-border: #e8dcc8;
+
+  /* Link */
+  --link: #0d9488;
+  --link-hover: #0f766d;
+
+  /* Sidebar */
+  --sidebar: #f5f4f4;
+  --sidebar-foreground: #1c1917;
+  --sidebar-border: #e7e5e4;
+  --sidebar-accent: #e7e5e4;
+  --sidebar-accent-foreground: #1c1917;
+  --sidebar-ring: #0d9488;
+}
+
+/*
+ * Dark theme — Woodsmoke neutrals + Teal brand accent
+ * Woodsmoke palette:
+ *   50: #fafafa  100: #f5f5f5  200: #e6e6e6  300: #d6d6d6
+ *   400: #a5a5a5  500: #767676  600: #575757  700: #434343
+ *   800: #292929  900: #171717  950: #0a0a0a
+ */
+.dark {
+  --background: #171717;
+  --foreground: #f5f5f5;
+  --muted: #212121;
+  --muted-foreground: #a5a5a5;
+  --popover: #212121;
+  --popover-foreground: #f5f5f5;
+  --card: #212121;
+  --card-foreground: #f5f5f5;
+  --border: #333333;
+  --input: #333333;
+  --primary: #2dd4c5;
+  --primary-foreground: #042f2b;
+  --secondary: #2b2b2b;
+  --secondary-foreground: #f5f5f5;
+  --accent: #2b2b2b;
+  --accent-foreground: #f5f5f5;
+  --destructive: #eb5757;
+  --destructive-foreground: #ffffff;
+  --success: #4dab9a;
+  --success-foreground: #ffffff;
+  --warning: #cb912f;
+  --warning-foreground: #ffffff;
+  --ring: #2dd4c5;
+  --surface: #1e1e1e;
+
+  /* Status */
+  --status-open: #172035;
+  --status-open-foreground: #7ea8d4;
+  --status-in-progress: #2a2010;
+  --status-in-progress-foreground: #d4a85c;
+  --status-waiting: #221830;
+  --status-waiting-foreground: #b08ed4;
+  --status-resolved: #122a1c;
+  --status-resolved-foreground: #6db88a;
+  --status-closed: #212121;
+  --status-closed-foreground: #a5a5a5;
+
+  /* Priority */
+  --priority-urgent: #2a1212;
+  --priority-urgent-foreground: #e07070;
+  --priority-high: #2a1c10;
+  --priority-high-foreground: #d49050;
+  --priority-medium: #2a2010;
+  --priority-medium-foreground: #d4a85c;
+  --priority-low: #212121;
+  --priority-low-foreground: #a5a5a5;
+
+  /* Role */
+  --role-admin: #2a1212;
+  --role-admin-foreground: #e07070;
+  --role-agent: #172035;
+  --role-agent-foreground: #7ea8d4;
+  --role-customer: #122a1c;
+  --role-customer-foreground: #6db88a;
+
+  /* Internal note */
+  --internal: #221c10;
+  --internal-foreground: #d4a85c;
+  --internal-border: #3a3020;
+
+  /* Link */
+  --link: #2dd4c5;
+  --link-hover: #5eeade;
+
+  /* Sidebar */
+  --sidebar: #141414;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-border: #333333;
+  --sidebar-accent: #282828;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-ring: #2dd4c5;
+}
+
+/*
+ * Base styles
+ */
+* {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family:
+    ui-sans-serif,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Helvetica,
+    Arial,
+    sans-serif;
+}
+
+/*
+ * Tiptap Editor Styles
+ */
+
+/* Placeholder */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--muted-foreground);
+  pointer-events: none;
+  height: 0;
+}
+
+/* Prose styles for editor content */
+.tiptap-editable .tiptap,
+.tiptap-readonly .tiptap {
+  & h1 {
+    font-size: 1.875rem;
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+  & h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-top: 1.25rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+  & h3 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+  }
+  & p {
+    margin-bottom: 0.5rem;
+    line-height: 1.625;
+  }
+  & ul {
+    list-style: disc;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  & ol {
+    list-style: decimal;
+    padding-left: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+  & li {
+    margin-bottom: 0.25rem;
+  }
+  & blockquote {
+    border-left: 3px solid var(--border);
+    padding-left: 1rem;
+    margin: 0.75rem 0;
+    color: var(--muted-foreground);
+    font-style: italic;
+  }
+  & hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+  & img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    margin: 0.5rem 0;
+  }
+  & a {
+    color: var(--link);
+    text-decoration: underline;
+  }
+  & a:hover {
+    color: var(--link-hover);
+  }
+}
+
+/* Code blocks */
+.tiptap .code-block {
+  background-color: var(--muted);
+  border-radius: 0.375rem;
+  padding: 0.75rem 1rem;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+}
+
+.tiptap code:not(.code-block code) {
+  background-color: var(--muted);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 0.875em;
+}
+
+/* @mention */
+.tiptap .mention {
+  background-color: var(--status-open);
+  color: var(--status-open-foreground);
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-weight: 500;
+  font-size: 0.875em;
+}
+
+/* Table styles */
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: auto;
+  width: 100%;
+  margin: 0.75rem 0;
+}
+
+.tiptap td,
+.tiptap th {
+  border: 1px solid var(--border);
+  padding: 0.5rem;
+  min-width: 80px;
+  vertical-align: top;
+}
+
+.tiptap th {
+  background-color: var(--muted);
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Task list */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.tiptap ul[data-type='taskList'] li input[type='checkbox'] {
+  margin-top: 0.25rem;
+}
