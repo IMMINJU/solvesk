@@ -2,13 +2,17 @@ import { db, comments, issues } from '@/db'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 import { NotFoundError, ForbiddenError } from '@/lib/errors'
-import { CUSTOMER_CONSTRAINTS } from '@/lib/permissions-config'
 import type { AuthenticatedUser } from '@/lib/permissions'
 import { checkIssueAccess } from '@/features/issue/services/issue.service'
 import { notifyCommentAdded } from '@/features/notification/services/notify'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { APP_CONFIG } from '@/config/app'
 import { buildPseudonymMap, applyPseudonym } from '@/lib/utils/pseudonym'
+import {
+  canCreateInternalComment,
+  canUpdateComment,
+  canDeleteComment,
+} from './comment.permissions'
 
 export const createCommentSchema = z.object({
   issueId: z.number(),
@@ -79,8 +83,7 @@ class CommentService {
   }
 
   async create(user: AuthenticatedUser, input: CreateCommentInput) {
-    // Customer cannot create internal comments
-    if (user.role === 'customer' && input.isInternal) {
+    if (!canCreateInternalComment(user) && input.isInternal) {
       throw new ForbiddenError()
     }
 
@@ -131,8 +134,7 @@ class CommentService {
     })
     if (!comment) throw new NotFoundError('Comment')
 
-    // Only own comments
-    if (comment.authorId !== user.id) throw new ForbiddenError()
+    if (!canUpdateComment(user, comment)) throw new ForbiddenError()
 
     const [updated] = await db
       .update(comments)
@@ -149,10 +151,7 @@ class CommentService {
     })
     if (!comment) throw new NotFoundError('Comment')
 
-    // Admin can delete any, others only own
-    if (user.role !== 'admin' && comment.authorId !== user.id) {
-      throw new ForbiddenError()
-    }
+    if (!canDeleteComment(user, comment)) throw new ForbiddenError()
 
     await db.delete(comments).where(eq(comments.id, commentId))
     return { success: true }

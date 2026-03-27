@@ -3,8 +3,8 @@ import { eq, and, count } from 'drizzle-orm'
 import { z } from 'zod'
 import { PAGINATION } from '@/config/limits'
 import { NotFoundError, ForbiddenError, ConflictError } from '@/lib/errors'
-import { isStaff, isAdmin } from '@/lib/permissions-config'
 import type { AuthenticatedUser } from '@/lib/permissions'
+import { canManageLabel, canDeleteLabel } from './label.permissions'
 import { checkIssueAccess } from '@/features/issue/services/issue.service'
 
 // ============================================
@@ -85,7 +85,7 @@ class LabelService {
   }
 
   async create(user: AuthenticatedUser, input: CreateLabelInput) {
-    if (!isStaff(user.role)) {
+    if (!canManageLabel(user)) {
       throw new ForbiddenError('Only staff can manage labels')
     }
 
@@ -111,7 +111,7 @@ class LabelService {
   }
 
   async update(user: AuthenticatedUser, labelId: number, input: UpdateLabelInput) {
-    if (!isStaff(user.role)) {
+    if (!canManageLabel(user)) {
       throw new ForbiddenError('Only staff can manage labels')
     }
 
@@ -142,7 +142,7 @@ class LabelService {
   }
 
   async delete(user: AuthenticatedUser, labelId: number) {
-    if (!isAdmin(user.role)) {
+    if (!canDeleteLabel(user)) {
       throw new ForbiddenError('Only admins can delete labels')
     }
 
@@ -154,7 +154,7 @@ class LabelService {
   }
 
   async addToIssue(user: AuthenticatedUser, issueKey: string, labelId: number) {
-    if (!isStaff(user.role)) {
+    if (!canManageLabel(user)) {
       throw new ForbiddenError('Only staff can manage labels')
     }
 
@@ -186,7 +186,7 @@ class LabelService {
   }
 
   async removeFromIssue(user: AuthenticatedUser, issueKey: string, labelId: number) {
-    if (!isStaff(user.role)) {
+    if (!canManageLabel(user)) {
       throw new ForbiddenError('Only staff can manage labels')
     }
 

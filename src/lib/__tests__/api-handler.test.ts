@@ -5,15 +5,6 @@ vi.mock('../permissions', () => ({
   requireAuth: vi.fn(),
 }))
 
-vi.mock('../error-handler', async () => {
-  const { NextResponse } = await import('next/server')
-  return {
-    handleApiError: vi.fn((error: Error) => {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }),
-  }
-})
-
 vi.mock('next/server', () => {
   class MockHeaders {
     private map = new Map<string, string>()
