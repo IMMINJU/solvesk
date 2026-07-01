@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { addAttachmentsSchema } from '../attachment.service'
+import { canDeleteAttachment } from '../attachment.permissions'
 import type { AuthenticatedUser } from '@/lib/permissions'
 
 // ============================================
@@ -221,6 +222,9 @@ describe('AttachmentService', () => {
     })
   })
 
+  // deleteById's authorization rule (admin OR uploader) is exhaustively covered
+  // by the canDeleteAttachment unit tests below with no mocks. Here we only check
+  // that the service wires the guard and DB steps together correctly.
   describe('deleteById', () => {
     it('throws NotFound when attachment does not exist', async () => {
       const { attachmentService } = await import('../attachment.service')
@@ -231,60 +235,42 @@ describe('AttachmentService', () => {
       )
     })
 
-    it('admin can delete any attachment', async () => {
+    it('deletes when the guard allows it', async () => {
       const { attachmentService } = await import('../attachment.service')
-      mockFindFirst.mockResolvedValueOnce({
-        id: 1,
-        uploadedBy: 'other-user',
-      })
-      mockDelete.mockResolvedValueOnce(undefined)
-
-      const result = await attachmentService.deleteById(adminUser, 1)
-      expect(result).toEqual({ success: true })
-    })
-
-    it('user can delete own upload', async () => {
-      const { attachmentService } = await import('../attachment.service')
-      mockFindFirst.mockResolvedValueOnce({
-        id: 1,
-        uploadedBy: 'agent-1',
-      })
+      mockFindFirst.mockResolvedValueOnce({ id: 1, uploadedBy: 'agent-1' })
       mockDelete.mockResolvedValueOnce(undefined)
 
       const result = await attachmentService.deleteById(agentUser, 1)
       expect(result).toEqual({ success: true })
+      expect(mockDelete).toHaveBeenCalledOnce()
     })
 
-    it("non-admin cannot delete other user's upload", async () => {
+    it('throws Forbidden and does not delete when the guard rejects', async () => {
       const { attachmentService } = await import('../attachment.service')
-      mockFindFirst.mockResolvedValueOnce({
-        id: 1,
-        uploadedBy: 'other-user',
-      })
+      mockFindFirst.mockResolvedValueOnce({ id: 1, uploadedBy: 'other-user' })
 
       await expect(attachmentService.deleteById(agentUser, 1)).rejects.toThrow('Access denied')
+      expect(mockDelete).not.toHaveBeenCalled()
     })
+  })
+})
 
-    it("customer cannot delete other user's upload", async () => {
-      const { attachmentService } = await import('../attachment.service')
-      mockFindFirst.mockResolvedValueOnce({
-        id: 1,
-        uploadedBy: 'other-user',
-      })
+// ============================================
+// Permission logic (pure, no mocks)
+// ============================================
 
-      await expect(attachmentService.deleteById(customerUser, 1)).rejects.toThrow('Access denied')
-    })
+describe('canDeleteAttachment', () => {
+  it('allows admin to delete any upload', () => {
+    expect(canDeleteAttachment(adminUser, { uploadedBy: 'other-user' })).toBe(true)
+  })
 
-    it('customer can delete own upload', async () => {
-      const { attachmentService } = await import('../attachment.service')
-      mockFindFirst.mockResolvedValueOnce({
-        id: 1,
-        uploadedBy: 'customer-1',
-      })
-      mockDelete.mockResolvedValueOnce(undefined)
+  it('allows a user to delete their own upload', () => {
+    expect(canDeleteAttachment(agentUser, { uploadedBy: 'agent-1' })).toBe(true)
+    expect(canDeleteAttachment(customerUser, { uploadedBy: 'customer-1' })).toBe(true)
+  })
 
-      const result = await attachmentService.deleteById(customerUser, 1)
-      expect(result).toEqual({ success: true })
-    })
+  it("rejects a non-admin from deleting another user's upload", () => {
+    expect(canDeleteAttachment(agentUser, { uploadedBy: 'other-user' })).toBe(false)
+    expect(canDeleteAttachment(customerUser, { uploadedBy: 'other-user' })).toBe(false)
   })
 })

@@ -8,11 +8,7 @@ import { notifyCommentAdded } from '@/features/notification/services/notify'
 import { sanitizeHtml } from '@/lib/sanitize'
 import { APP_CONFIG } from '@/config/app'
 import { buildPseudonymMap, applyPseudonym } from '@/lib/utils/pseudonym'
-import {
-  canCreateInternalComment,
-  canUpdateComment,
-  canDeleteComment,
-} from './comment.permissions'
+import { canCreateInternalComment, canUpdateComment, canDeleteComment } from './comment.permissions'
 
 export const createCommentSchema = z.object({
   issueId: z.number(),

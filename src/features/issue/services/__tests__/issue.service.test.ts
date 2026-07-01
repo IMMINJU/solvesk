@@ -5,6 +5,15 @@ import {
   checkIssueAccess,
   filterCommentsForRole,
 } from '../issue.service'
+import {
+  resolveCustomerIssueFields,
+  canEditIssue,
+  canAssignIssue,
+  canChangeIssuePriority,
+  canDeleteIssue,
+  canCreateIssueInProject,
+} from '../issue.permissions'
+import type { AuthenticatedUser } from '@/lib/permissions'
 
 describe('createIssueSchema', () => {
   it('accepts valid input', () => {
@@ -189,5 +198,111 @@ describe('filterCommentsForRole', () => {
   it('keeps all comments for agent', () => {
     const result = filterCommentsForRole(comments, 'agent')
     expect(result).toHaveLength(3)
+  })
+})
+
+// ============================================
+// Customer field constraints (pure, no mocks)
+// ============================================
+
+const staffAdmin: AuthenticatedUser = {
+  id: 'admin-1',
+  email: 'admin@test.com',
+  name: 'Admin',
+  role: 'admin',
+  projectId: null,
+  image: null,
+}
+
+const staffAgent: AuthenticatedUser = {
+  id: 'agent-1',
+  email: 'agent@test.com',
+  name: 'Agent',
+  role: 'agent',
+  projectId: null,
+  image: null,
+}
+
+const customer: AuthenticatedUser = {
+  id: 'customer-1',
+  email: 'customer@test.com',
+  name: 'Customer',
+  role: 'customer',
+  projectId: 1,
+  image: null,
+}
+
+describe('resolveCustomerIssueFields', () => {
+  it('forces safe defaults for a customer, ignoring what they sent', () => {
+    const result = resolveCustomerIssueFields(customer, {
+      assigneeId: 'agent-9',
+      priority: 'urgent',
+      dueDate: '2026-12-31',
+    })
+    expect(result).toEqual({ assigneeId: null, priority: 'medium', dueDate: null })
+  })
+
+  it('keeps the values staff passed', () => {
+    const result = resolveCustomerIssueFields(staffAgent, {
+      assigneeId: 'agent-2',
+      priority: 'high',
+      dueDate: '2026-12-31',
+    })
+    expect(result).toEqual({ assigneeId: 'agent-2', priority: 'high', dueDate: '2026-12-31' })
+  })
+
+  it('defaults staff omissions without forcing them', () => {
+    const result = resolveCustomerIssueFields(staffAdmin, {})
+    expect(result).toEqual({ assigneeId: null, priority: 'medium', dueDate: null })
+  })
+})
+
+describe('canEditIssue', () => {
+  it('lets a customer edit only their own issue', () => {
+    expect(canEditIssue(customer, { reporterId: 'customer-1' })).toBe(true)
+    expect(canEditIssue(customer, { reporterId: 'someone-else' })).toBe(false)
+  })
+
+  it('lets staff edit any issue', () => {
+    expect(canEditIssue(staffAgent, { reporterId: 'someone-else' })).toBe(true)
+    expect(canEditIssue(staffAdmin, { reporterId: 'someone-else' })).toBe(true)
+  })
+})
+
+describe('canAssignIssue / canChangeIssuePriority', () => {
+  it('lets staff assign and re-prioritise', () => {
+    expect(canAssignIssue(staffAdmin)).toBe(true)
+    expect(canAssignIssue(staffAgent)).toBe(true)
+    expect(canChangeIssuePriority(staffAdmin)).toBe(true)
+    expect(canChangeIssuePriority(staffAgent)).toBe(true)
+  })
+
+  it('blocks customers from both', () => {
+    expect(canAssignIssue(customer)).toBe(false)
+    expect(canChangeIssuePriority(customer)).toBe(false)
+  })
+})
+
+describe('canDeleteIssue', () => {
+  it('is admin-only', () => {
+    expect(canDeleteIssue(staffAdmin)).toBe(true)
+    expect(canDeleteIssue(staffAgent)).toBe(false)
+    expect(canDeleteIssue(customer)).toBe(false)
+  })
+})
+
+describe('canCreateIssueInProject', () => {
+  it('lets admin create in any project', () => {
+    expect(canCreateIssueInProject(staffAdmin, 999, { isMember: false })).toBe(true)
+  })
+
+  it('lets a customer create only in their own project', () => {
+    expect(canCreateIssueInProject(customer, 1, { isMember: false })).toBe(true)
+    expect(canCreateIssueInProject(customer, 2, { isMember: false })).toBe(false)
+  })
+
+  it('lets an agent create only where assigned', () => {
+    expect(canCreateIssueInProject(staffAgent, 1, { isMember: true })).toBe(true)
+    expect(canCreateIssueInProject(staffAgent, 1, { isMember: false })).toBe(false)
   })
 })

@@ -14,7 +14,7 @@ Thanks for your interest in contributing! This guide will help you get started.
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-org/solvesk.git
+git clone https://github.com/IMMINJU/solvesk.git
 cd solvesk
 
 # Install dependencies

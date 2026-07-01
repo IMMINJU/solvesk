@@ -77,7 +77,16 @@ describe('LabelListResult type', () => {
 
   it('contains LabelListItem array in data', () => {
     const result: LabelListResult = {
-      data: [{ id: 1, name: 'Bug', color: '#ff0000', description: null, createdBy: 'user-1', createdAt: new Date() }],
+      data: [
+        {
+          id: 1,
+          name: 'Bug',
+          color: '#ff0000',
+          description: null,
+          createdBy: 'user-1',
+          createdAt: new Date(),
+        },
+      ],
       total: 1,
       page: 1,
       pageSize: 20,
@@ -125,7 +134,11 @@ describe('canDeleteLabel', () => {
 
 describe('createLabelSchema', () => {
   it('validates valid input', () => {
-    const result = createLabelSchema.safeParse({ name: 'Bug', color: '#ff0000', description: 'Bug reports' })
+    const result = createLabelSchema.safeParse({
+      name: 'Bug',
+      color: '#ff0000',
+      description: 'Bug reports',
+    })
     expect(result.success).toBe(true)
   })
 

@@ -3,6 +3,7 @@ import { eq, inArray, or } from 'drizzle-orm'
 import { z } from 'zod'
 import type { AuthenticatedUser } from '@/lib/permissions'
 import { ForbiddenError, NotFoundError, ConflictError } from '@/lib/errors'
+import { canManageProjects, canAccessProject } from './project.permissions'
 import { logAudit } from '@/lib/audit-logger'
 import { APP_CONFIG } from '@/config/app'
 import { buildPseudonymMap } from '@/lib/utils/pseudonym'
@@ -105,7 +106,7 @@ class ProjectService {
   }
 
   async create(user: AuthenticatedUser, input: CreateProjectInput) {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjects(user)) throw new ForbiddenError()
 
     // Check unique code
     const existing = await db.query.projects.findFirst({
@@ -131,7 +132,7 @@ class ProjectService {
   }
 
   async update(user: AuthenticatedUser, projectId: number, input: UpdateProjectInput) {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjects(user)) throw new ForbiddenError()
 
     const project = await db.query.projects.findFirst({
       where: eq(projects.id, projectId),
@@ -151,7 +152,7 @@ class ProjectService {
   }
 
   async delete(user: AuthenticatedUser, projectId: number) {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjects(user)) throw new ForbiddenError()
 
     const project = await db.query.projects.findFirst({
       where: eq(projects.id, projectId),
@@ -219,19 +220,16 @@ class ProjectService {
   }
 
   private async checkAccess(user: AuthenticatedUser, projectId: number): Promise<void> {
-    if (user.role === 'admin') return
-
-    if (user.role === 'customer') {
-      if (user.projectId !== projectId) throw new ForbiddenError()
-      return
+    // Only agents need a DB lookup; admin/customer are decided from the user alone.
+    let isMember = false
+    if (user.role === 'agent') {
+      const membership = await db.query.projectMembers.findFirst({
+        where: (pm, { and, eq }) => and(eq(pm.projectId, projectId), eq(pm.userId, user.id)),
+      })
+      isMember = !!membership
     }
 
-    // Agent
-    const membership = await db.query.projectMembers.findFirst({
-      where: (pm, { and, eq }) => and(eq(pm.projectId, projectId), eq(pm.userId, user.id)),
-    })
-
-    if (!membership) throw new ForbiddenError()
+    if (!canAccessProject(user, projectId, { isMember })) throw new ForbiddenError()
   }
 }
 

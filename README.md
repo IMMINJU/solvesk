@@ -25,7 +25,7 @@ Open-source multi-tenant helpdesk and issue tracker with row-level tenant isolat
 
 | Layer     | Technology                  |
 | --------- | --------------------------- |
-| Framework | Next.js 15 (App Router)     |
+| Framework | Next.js 16 (App Router)     |
 | Database  | PostgreSQL + Drizzle ORM    |
 | Auth      | NextAuth.js (Credentials)   |
 | UI        | Tailwind CSS v4 + shadcn/ui |
@@ -121,9 +121,9 @@ pnpm test:e2e            # E2E tests (Playwright)
 
 | Layer       | Tests | Coverage                                                         |
 | ----------- | ----- | ---------------------------------------------------------------- |
-| Unit        | 302   | Services, API handlers, permissions, config                      |
+| Unit        | 296   | Services, API handlers, permissions, config                      |
 | Integration | 152   | RBAC matrix, customer/agent isolation, notifications, audit logs |
-| E2E         | 167   | Full user flows for Admin, Agent, and Customer roles             |
+| E2E         | 163   | Full user flows for Admin, Agent, and Customer roles             |
 
 ## Scripts
 

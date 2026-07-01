@@ -1,7 +1,8 @@
 import { db, projectMembers, users } from '@/db'
-import { eq, and, inArray } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import type { AuthenticatedUser } from '@/lib/permissions'
 import { ForbiddenError, NotFoundError, ConflictError } from '@/lib/errors'
+import { canManageProjectMembers } from './project-membership.permissions'
 
 export interface ProjectMember {
   userId: string
@@ -18,7 +19,7 @@ class ProjectMembershipService {
    * Admins have implicit access — only agents appear in project_members.
    */
   async listMembers(user: AuthenticatedUser, projectId: number): Promise<ProjectMember[]> {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjectMembers(user)) throw new ForbiddenError()
 
     const rows = await db
       .select({
@@ -40,7 +41,7 @@ class ProjectMembershipService {
    * Add an agent to a project.
    */
   async addMember(user: AuthenticatedUser, projectId: number, agentUserId: string): Promise<void> {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjectMembers(user)) throw new ForbiddenError()
 
     // Verify agent exists and is an agent
     const agent = await db.query.users.findFirst({
@@ -73,7 +74,7 @@ class ProjectMembershipService {
     projectId: number,
     agentUserId: string
   ): Promise<void> {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjectMembers(user)) throw new ForbiddenError()
 
     const existing = await db.query.projectMembers.findFirst({
       where: and(eq(projectMembers.projectId, projectId), eq(projectMembers.userId, agentUserId)),
@@ -92,7 +93,7 @@ class ProjectMembershipService {
     user: AuthenticatedUser,
     projectId: number
   ): Promise<{ id: string; name: string | null; email: string }[]> {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canManageProjectMembers(user)) throw new ForbiddenError()
 
     // Get current members
     const currentMembers = await db

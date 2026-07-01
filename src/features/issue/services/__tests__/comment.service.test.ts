@@ -54,7 +54,11 @@ describe('createCommentSchema', () => {
   })
 
   it('accepts isInternal flag', () => {
-    const result = createCommentSchema.safeParse({ issueId: 1, content: 'Internal note', isInternal: true })
+    const result = createCommentSchema.safeParse({
+      issueId: 1,
+      content: 'Internal note',
+      isInternal: true,
+    })
     expect(result.success).toBe(true)
     if (result.success) expect(result.data.isInternal).toBe(true)
   })

@@ -1,4 +1,4 @@
-import { db, issues, projects, projectMembers, users } from '@/db'
+import { db, issues, projects, projectMembers } from '@/db'
 import { eq, and, or, sql, inArray, count } from 'drizzle-orm'
 import type { SQL } from 'drizzle-orm'
 import type { AuthenticatedUser } from '@/lib/permissions'
@@ -131,6 +131,11 @@ class DashboardService {
   /**
    * Customer isolation: own issues OR (same project + not private)
    * Admin/Agent: all issues in accessible projects
+   *
+   * Not extracted into a pure permission function: unlike the boolean guards in
+   * the other services, this branch *builds a Drizzle SQL predicate*, so it can
+   * only be exercised against the DB (or with ORM mocks). It stays here and is
+   * covered by the integration-style tests in this feature's __tests__.
    */
   private buildAccessFilter(user: AuthenticatedUser, projectIds: number[]): SQL {
     const projectScope = inArray(issues.projectId, projectIds)

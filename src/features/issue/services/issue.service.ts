@@ -1,10 +1,18 @@
-import { db, issues, projects, projectMembers, issueLabels, labels, comments } from '@/db'
+import { db, issues, projects, projectMembers, issueLabels, comments } from '@/db'
 import { PAGINATION } from '@/config/limits'
 import { eq, and, or, desc, asc, sql, inArray, ilike, count } from 'drizzle-orm'
 import { z } from 'zod'
 import type { AuthenticatedUser } from '@/lib/permissions'
 import { ForbiddenError, NotFoundError } from '@/lib/errors'
 import { CUSTOMER_CONSTRAINTS, canCustomerChangeStatus } from '@/lib/permissions-config'
+import {
+  resolveCustomerIssueFields,
+  canEditIssue,
+  canAssignIssue,
+  canChangeIssuePriority,
+  canDeleteIssue,
+  canCreateIssueInProject,
+} from './issue.permissions'
 import { logAudit } from '@/lib/audit-logger'
 import { APP_CONFIG } from '@/config/app'
 import { sanitizeHtml } from '@/lib/sanitize'
@@ -182,10 +190,11 @@ class IssueService {
   }
 
   async create(user: AuthenticatedUser, input: CreateIssueInput) {
-    // Customer constraints: strip fields they can't set
-    const assigneeId = user.role === 'customer' ? null : (input.assigneeId ?? null)
-    const priority = user.role === 'customer' ? ('medium' as const) : input.priority
-    const dueDate = user.role === 'customer' ? null : input.dueDate ? new Date(input.dueDate) : null
+    // Customer constraints: strip fields they can't set (pure guard)
+    const fields = resolveCustomerIssueFields(user, input)
+    const assigneeId = fields.assigneeId
+    const priority = fields.priority
+    const dueDate = fields.dueDate ? new Date(fields.dueDate) : null
 
     // Access check (before transaction to fail fast)
     const project = await db.query.projects.findFirst({
@@ -193,9 +202,8 @@ class IssueService {
     })
     if (!project) throw new NotFoundError('Project')
 
-    if (user.role === 'customer' && user.projectId !== input.projectId) {
-      throw new ForbiddenError()
-    }
+    // Only agents need a membership lookup; admin/customer decide from the user.
+    let isMember = false
     if (user.role === 'agent') {
       const membership = await db.query.projectMembers.findFirst({
         where: and(
@@ -203,7 +211,11 @@ class IssueService {
           eq(projectMembers.userId, user.id)
         ),
       })
-      if (!membership) throw new ForbiddenError()
+      isMember = !!membership
+    }
+
+    if (!canCreateIssueInProject(user, input.projectId, { isMember })) {
+      throw new ForbiddenError()
     }
 
     // Atomic: increment issueCount + insert issue (transaction with row lock)
@@ -276,7 +288,7 @@ class IssueService {
     await this.checkAccess(user, issue)
 
     // Customers can only update title/content of own issues
-    if (user.role === 'customer' && issue.reporterId !== user.id) {
+    if (!canEditIssue(user, issue)) {
       throw new ForbiddenError()
     }
 
@@ -345,7 +357,7 @@ class IssueService {
   }
 
   async updateAssignee(user: AuthenticatedUser, issueKey: string, assigneeId: string | null) {
-    if (user.role === 'customer') throw new ForbiddenError()
+    if (!canAssignIssue(user)) throw new ForbiddenError()
 
     const issue = await db.query.issues.findFirst({
       where: eq(issues.issueKey, issueKey),
@@ -376,7 +388,7 @@ class IssueService {
   }
 
   async updatePriority(user: AuthenticatedUser, issueKey: string, priority: string) {
-    if (user.role === 'customer') throw new ForbiddenError()
+    if (!canChangeIssuePriority(user)) throw new ForbiddenError()
 
     const issue = await db.query.issues.findFirst({
       where: eq(issues.issueKey, issueKey),
@@ -408,7 +420,7 @@ class IssueService {
   }
 
   async delete(user: AuthenticatedUser, issueKey: string) {
-    if (user.role !== 'admin') throw new ForbiddenError()
+    if (!canDeleteIssue(user)) throw new ForbiddenError()
 
     const issue = await db.query.issues.findFirst({
       where: eq(issues.issueKey, issueKey),

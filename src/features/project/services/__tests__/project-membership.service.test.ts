@@ -1,30 +1,52 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
+import { canManageProjectMembers } from '../project-membership.permissions'
+import type { AuthenticatedUser } from '@/lib/permissions'
 
 /**
- * ProjectMembershipService is DB-heavy (all methods query project_members + users).
- * Pure-logic tests here; full CRUD is covered in E2E tests (tests/e2e/project-members.spec.ts).
+ * ProjectMembershipService is DB-heavy (every method queries project_members +
+ * users), so full CRUD is covered in E2E (tests/e2e/project-members.spec.ts).
+ * The one piece of pure logic — the admin-only guard shared by listMembers,
+ * addMember, removeMember and getAvailableAgents — lives in
+ * project-membership.permissions.ts and is tested here with no mocks.
  */
 
-describe('ProjectMembershipService — permission guards', () => {
-  // These tests verify that service methods check admin-only access.
-  // We import the module to verify its shape/exports.
+const adminUser: AuthenticatedUser = {
+  id: 'admin-1',
+  email: 'admin@test.com',
+  name: 'Admin',
+  role: 'admin',
+  projectId: null,
+  image: null,
+}
 
-  it('exports projectMembershipService', async () => {
-    // Dynamic import to avoid DB connection in unit tests
-    const mod = await import('../project-membership.service')
-    expect(mod.projectMembershipService).toBeDefined()
-    expect(typeof mod.projectMembershipService.listMembers).toBe('function')
-    expect(typeof mod.projectMembershipService.addMember).toBe('function')
-    expect(typeof mod.projectMembershipService.removeMember).toBe('function')
-    expect(typeof mod.projectMembershipService.getAvailableAgents).toBe('function')
-    expect(typeof mod.projectMembershipService.canAccessProject).toBe('function')
+const agentUser: AuthenticatedUser = {
+  id: 'agent-1',
+  email: 'agent@test.com',
+  name: 'Agent',
+  role: 'agent',
+  projectId: null,
+  image: null,
+}
+
+const customerUser: AuthenticatedUser = {
+  id: 'customer-1',
+  email: 'customer@test.com',
+  name: 'Customer',
+  role: 'customer',
+  projectId: 1,
+  image: null,
+}
+
+describe('canManageProjectMembers', () => {
+  it('allows admin to manage members', () => {
+    expect(canManageProjectMembers(adminUser)).toBe(true)
   })
 
-  it('listMembers, addMember, removeMember, getAvailableAgents require admin role', async () => {
-    // The service checks user.role !== "admin" and throws ForbiddenError.
-    // This is verified structurally — the actual enforcement is tested in E2E.
-    // Import ForbiddenError to confirm it's used
-    const { ForbiddenError } = await import('@/lib/errors')
-    expect(ForbiddenError).toBeDefined()
+  it('rejects agent from managing members', () => {
+    expect(canManageProjectMembers(agentUser)).toBe(false)
+  })
+
+  it('rejects customer from managing members', () => {
+    expect(canManageProjectMembers(customerUser)).toBe(false)
   })
 })

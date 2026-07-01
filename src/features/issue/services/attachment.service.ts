@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { NotFoundError, ForbiddenError } from '@/lib/errors'
 import type { AuthenticatedUser } from '@/lib/permissions'
 import { checkIssueAccess } from '@/features/issue/services/issue.service'
+import { canDeleteAttachment } from './attachment.permissions'
 
 // ============================================
 // Validation
@@ -87,7 +88,7 @@ class AttachmentService {
     if (!attachment) throw new NotFoundError('Attachment')
 
     // Admin can delete any, others can only delete own uploads
-    if (user.role !== 'admin' && attachment.uploadedBy !== user.id) {
+    if (!canDeleteAttachment(user, attachment)) {
       throw new ForbiddenError()
     }
 
